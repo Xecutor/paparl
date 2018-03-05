@@ -18,8 +18,8 @@ struct ConTest{
   void init(Console* argCon)
   {
     con=argCon;
-    con->drawCb=[this]() {onDraw();};
-    con->keyCb=[this](auto ke){onKeyPress(ke);};
+    con->setDrawCb([this]() {onDraw();});
+    con->setKeyCb([this](auto ke){onKeyPress(ke);});
     Color::red.toHSL(h,s,l);
     int mw=30;
     int mh=30;
@@ -64,7 +64,10 @@ struct ConTest{
     //con->clear();
     map.draw(con, 0, 0, 0, 0, 40,40);
     con->curFg=Color::white;
-    con->printAt(px, py, "@");
+    con->curGlow=true;
+    con->printAt({px, py},0, "@");
+    con->curGlow=false;
+    con->printAt({px+2, py}, 0, "@");
   }
   GumMap map;
   Console* con;

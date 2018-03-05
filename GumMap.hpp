@@ -142,12 +142,12 @@ public:
           mc.saveMem();
           con->curBg=calcLitColor(mc.bg,mc.lightTint,mc.lightStrength,mc.outdoors);
           con->curFg=calcLitColor(mc.fg,mc.lightTint,mc.lightStrength,mc.outdoors);
-          con->printAt(x0+x,y0+y,mc.sym);
+          con->printAt({x0+x,y0+y},0, mc.sym);
         }else
         {
           con->curBg=memBg;
           con->curFg=memFg;
-          con->printAt(x0+x,y0+y,mc.memSym);
+          con->printAt({x0+x,y0+y},0, mc.memSym);
         }
       }
     }

@@ -4,13 +4,17 @@ project("paparl")
 
 cmake_policy(SET CMP0003 NEW)
 
+if(NOT VCPKG_ROOT AND DEFINED ENV{VCPKG_ROOT})
+  set(VCPKG_ROOT $ENV{VCPKG_ROOT})
+endif()
+
 if(VCPKG_ROOT)
   include(${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 endif()
 
 add_subdirectory(glider)
 
-add_executable(paparl paparl.cpp GumMap.cpp)
+add_executable(paparl paparl.cpp GumMap.cpp Console.cpp)
 if(MSVC)
   target_compile_definitions(paparl PRIVATE -DWIN32_LEAN_AND_MEAN -DVC_EXTRALEAN -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
   set_target_properties(paparl PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
