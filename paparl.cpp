@@ -64,10 +64,9 @@ struct ConTest{
     //con->clear();
     map.draw(con, 0, 0, 0, 0, 40,40);
     con->curFg=Color::white;
-    con->curGlow=true;
     con->printAt({px, py},0, "@");
-    con->curGlow=false;
-    con->printAt({px+2, py}, 0, "@");
+    con->fillRect({{40,0},{10,10}}, Color::blue);
+    con->printCenteredAt({40,0},10, Color::red, Color::black, Console::pfMakeBackgroundDarker, FORMAT("hello %{}", "world"));
   }
   GumMap map;
   Console* con;
@@ -82,6 +81,9 @@ int GliderAppMain(int argc,char* argv[])
   //dpFile=fopen("zorro.log","wb+");
 #endif
   try{
+    //╔════╗
+    //║    ║
+    //╚════╝
     srand((unsigned int)time(nullptr));
     kst::Logger::Init("paparl.log");
     GumMap::cfov.prepare(20);

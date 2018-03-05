@@ -29,14 +29,17 @@ public:
   bool curGlow = false;
   void clear();
   enum PrintFlags{
-    pfKeepBackground,
-    pfKeepForeground,
-    pfMakeBackgroundDarker,
+    pfKeepBackground = 1,
+    pfKeepForeground = 2,
+    pfMakeBackgroundDarker = 4,
+    pfDoNotWrap = 8,
   };
   void printAt(IPos pos, uint32_t flags, const char* str);
+  void printCenteredAt(IPos pos, int maxWidth, uint32_t flags, const char* str);
   void printAt(IPos pos, const Color& fg, const Color& bg, uint32_t flags, const char* str);
+  void printCenteredAt(IPos pos, int maxWidth, const Color& fg, const Color& bg, uint32_t flags, const char* str);
 
-  void fillRect(const IRect& rect, const Color& bg);
+  void fillRect(IRect rect, const Color& bg);
 
   int width()const
   {

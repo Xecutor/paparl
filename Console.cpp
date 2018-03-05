@@ -29,20 +29,6 @@ void Console::init(const std::string& fontFile, int fontSize, int argTileWidth, 
   sym.resize(h,SymbolVector(w,' '));
   symOld=sym;
 
-  //    int sl=strlen(str);
-  //    int x=1;
-  //    int y=0;
-  //    for(;*str;++str,++x)
-  //    {
-  //      char t[2]={*str,0};
-  //      txt.setText(t);
-  //      txt.setPosition(Pos(x*(tileWidth+2)+(tileWidth-txt.getWidth())/2,y*(tileHeight+2)+(tileHeight-txt.getHeight())/2));
-  //      if(x+tileWidth+2>=txt.getWidth())
-  //      {
-  //        x=0;y+=tileHeight+2;
-  //      }
-  //      img->renderHere(&txt);
-  //    }
   vb.setSize(w*h*4);
   bg.setSize(w*h*4);
   Grid g(Pos((float)w*tileWidth,(float)h*tileHeight),w,h);
@@ -64,16 +50,10 @@ void Console::init(const std::string& fontFile, int fontSize, int argTileWidth, 
   }
   bg.update();
   vb.update();
-  /*const char* str1="AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtVvUuWwXxYyZz";
-    const char* str2="0123456789!@#$%^&*()";
-    printAt(0,0,"hello world, lalala. привет!");
-    printAt(0,1,str1);
-    printAt(0,2,str2);*/
 }
 
 void Console::draw()
 {
-  //Rectangle(Rect(0,0,128,128),Color::blue).draw();
   int tf=-1,cf=-1,bf=-1,tt=-1,ct=-1,bt=-1;
   int idx=0;
   for(int y=0;y<h;++y)
@@ -129,24 +109,6 @@ void Console::draw()
   img->bind();
   vb.draw();
   img->unbind();
-  /*
-    Image imgx;
-    imgx.create(128,128);
-    imgx.setPosition(Pos(50,100));
-    imgx.setCenter(Pos(0,0));
-    Rectangle r2(Rect(0,0,128,128),Color::blue);
-    imgx.renderHere(&r2);
-    Rectangle r(Rect(0,0,128,128),Color::red);
-    state.enableScissors(Rect(10,10,20,20),true);
-    imgx.renderHere(&r);
-    state.disableScissors();
-    imgx.draw();*/
-  /*Text temp;
-    temp.assignFont(fnt);
-    temp.setText("╔════╗\n║    ║\n╚════╝");
-    temp.setPosition(Pos(50,100));
-    temp.draw();*/
-  //txt.draw();
 }
 
 Console::CharMap::iterator Console::initChar(ushort c, bool glow)
@@ -216,6 +178,37 @@ void Console::clear()
   }
 }
 
+void Console::fillRect(IRect rect, const Color& bgclr)
+{
+  if(rect.pos.x<0)
+  {
+    rect.pos.x=0;
+  }
+  if(rect.pos.y<0)
+  {
+    rect.pos.y=0;
+  }
+  if(rect.pos.x>w || rect.pos.y>h)
+  {
+    return;
+  }
+  if(rect.pos.x+rect.size.x>=w)
+  {
+    rect.size.x=w-rect.pos.x;
+  }
+  if(rect.pos.y+rect.size.y>=h)
+  {
+    rect.size.y=h-rect.pos.y;
+  }
+  uint32_t bg32 = bgclr.packTo32();
+  for(auto p:rect)
+  {
+    bgm[p.y][p.x]=bg32;
+    bg.getCBuf().set4(bgclr, 4*(p.y*w+p.x));
+  }
+}
+
+
 void Console::printAt(IPos pos, const Color& fg, const Color& bg, uint32_t flags, const char* str)
 {
   curFg=fg;
@@ -223,19 +216,49 @@ void Console::printAt(IPos pos, const Color& fg, const Color& bg, uint32_t flags
   printAt(pos, flags, str);
 }
 
+void Console::printCenteredAt(IPos pos, int maxWidth, uint32_t flags, const char* str)
+{
+  size_t len = strlen(str);
+  pos.x+=(maxWidth-len)/2;
+  printAt(pos, flags, str);
+}
+
+void Console::printCenteredAt(IPos pos, int maxWidth, const Color& fg, const Color& bg, uint32_t flags, const char* str)
+{
+  size_t len = strlen(str);
+  pos.x+=(maxWidth-(int)len)/2;
+  printAt(pos, fg, bg, flags, str);
+}
+
 void Console::printAt(IPos argPos, uint32_t flags, const char* str)
 {
   int x = argPos.x;
   int y = argPos.y;
   int pos=0;
+  bool writebg = (flags & pfKeepBackground)==0;
+  bool writefg = (flags & pfKeepForeground)==0;
+  bool makebgdarker = (flags & pfMakeBackgroundDarker)!=0;
+  Color tempBg;
   while(str[pos])
   {
     ushort c=UString::getNextSymbol(str,pos);
     if(Recti<int>(0,0,w,h).isInside(IPos(x,y)))
     {
       sym[y][x]=c;
-      fgm[y][x]=curFg.packTo32();
-      bgm[y][x]=curBg.packTo32();
+      if(makebgdarker)
+      {
+        tempBg=bgm[y][x];
+        tempBg.changeLightness(0.6f);
+        bgm[y][x]=tempBg.packTo32();
+      }
+      else if(writebg)
+      {
+        bgm[y][x]=curBg.packTo32();
+      }
+      if(writefg)
+      {
+        fgm[y][x]=curFg.packTo32();
+      }
       uint32_t charCode = getCharCode(c);
       CharMap::iterator it=cm.find(charCode);
       if(it==cm.end())
@@ -244,12 +267,26 @@ void Console::printAt(IPos argPos, uint32_t flags, const char* str)
       }
       int idx=y*w*4+x*4;
       glider::Rect(it->second.x,it->second.y,cw,ch).setQuad(vb.getTBuf(),idx);
-      vb.getCBuf().set4(curFg,idx);
-      bg.getCBuf().set4(curBg,idx);
+      if(writefg)
+      {
+        vb.getCBuf().set4(curFg,idx);
+      }
+      if(makebgdarker)
+      {
+        bg.getCBuf().set4(tempBg,idx);
+      }
+      else if(writebg)
+      {
+        bg.getCBuf().set4(curBg,idx);
+      }
     }
     ++x;
     if(x>=w)
     {
+      if(flags&pfDoNotWrap)
+      {
+        break;
+      }
       x=0;
       ++y;
       if(y>=h)
