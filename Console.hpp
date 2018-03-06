@@ -57,6 +57,10 @@ public:
   {
     keyCb = argKeyCb;
   }
+  void setMouseCb(std::function<void(const MouseEvent&)> argMouseCb)
+  {
+    mouseCb = argMouseCb;
+  }
 protected:
   virtual void onActiveChange(bool active){}
   virtual void onResize(){}
@@ -68,7 +72,8 @@ protected:
   void draw()override;
   void onFrameUpdate(int mcsec)override
   {
-    if(drawCb) {
+    if(drawCb)
+    {
       drawCb();
     }
   }
@@ -77,10 +82,20 @@ protected:
   
   void onKeyboardEvent(KeyboardEvent& argEvent)override
   {
-    if(keyCb) {
+    if(keyCb)
+    {
       keyCb(argEvent);
     }
   }
+
+  void onMouseEvent(MouseEvent& argEvent)override
+  {
+    if(mouseCb)
+    {
+      mouseCb(argEvent);
+    }
+  }
+
 
   using ColorVector=std::vector<uint32_t>;
   using ColorMatrix=std::vector<ColorVector>;

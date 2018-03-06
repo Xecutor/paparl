@@ -11,6 +11,7 @@
 #include "kst/Logger.hpp"
 #include "Console.hpp"
 #include "GumMap.hpp"
+#include "Menu.hpp"
 
 using namespace glider;
 
@@ -75,6 +76,80 @@ struct ConTest{
   float h,s,l;
 };
 
+class TestScreen2: public GameScreen {
+public:
+  TestScreen2(Console& argCon, ScreensController* argScon):GameScreen(argCon, argScon){}
+  void onKeyboardEvent(const KeyboardEvent& evt)override
+  {
+    if(evt.eventType==ketPress && evt.keySym==keyboard::GK_ESCAPE)
+    {
+      close();
+    }
+  }
+  bool isFullScreen()const override
+  {
+    return false;
+  }
+  void draw()override
+  {
+    con.printAt({1,1}, Color::red, Color::black, 0, "part screen");
+  }
+protected:
+};
+
+
+class TestScreen: public GameScreen {
+public:
+  TestScreen(Console& argCon, ScreensController* argScon):GameScreen(argCon, argScon){}
+  virtual void onKeyboardEvent(const KeyboardEvent& evt)
+  {
+    if(evt.eventType==ketPress && evt.keySym==keyboard::GK_ESCAPE)
+    {
+      close();
+    }
+    if(evt.eventType==ketPress && evt.keySym==keyboard::GK_RETURN)
+    {
+      scon->pushScreen<TestScreen2>();
+    }
+  }
+  virtual void draw()
+  {
+    con.curBg=Color::black;
+    con.clear();
+    con.printAt({0,0}, Color::red, Color::black, 0, "test screen");
+  }
+protected:
+};
+
+class MainMenu:public GameScreen{
+public:
+  MainMenu(Console& argCon, ScreensController* argScon):GameScreen(argCon, argScon)
+  {
+    scon->pushScreen<Menu>(IPos{0,0})
+        .add("hello",[](){})
+        .add("world",[](){});
+    close();
+  }
+  void onKeyboardEvent(const KeyboardEvent& evt) override
+  {
+    if(evt.eventType==ketPress && evt.keySym==keyboard::GK_RETURN)
+    {
+      scon->pushScreen<TestScreen>();
+    }
+    if(evt.eventType==ketPress && evt.keySym==keyboard::GK_ESCAPE)
+    {
+      close();
+    }
+  }
+  void draw()override
+  {
+    con.curBg=Color::black;
+    con.clear();
+    con.printAt({0,0}, Color::red, Color::black, 0, "main menu");
+  }
+protected:
+};
+
 int GliderAppMain(int argc,char* argv[])
 {
 #ifdef DEBUG
@@ -99,10 +174,12 @@ int GliderAppMain(int argc,char* argv[])
     engine.setFpsLimit(60);
     ReferenceTmpl<Console> con = new Console();
     con->init("FSEX300.ttf", 16, tileWidth, tileHeight, conWidth,conHeight);
-    
-    ConTest t;
 
-    t.init(con.get());
+    ScreensController scon(*con);
+    scon.pushScreen<MainMenu>();
+//    ConTest t;
+
+//    t.init(con.get());
     
     engine.assignHandler(con.get());
     engine.loop(con.get());
