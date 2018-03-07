@@ -56,3 +56,31 @@ void ScreensController::draw()
     (*it)->draw();
   }
 }
+
+IRect GameScreen::calcRect(IPos pos, IPos size, GameScreen::RectOrigin ro)
+{
+  switch(ro)
+  {
+    case roTopLeft:
+      return {pos, size};
+    case roTopRight:
+      return {pos-size.xOnly(), size};
+    case roBottonLeft:
+      return {pos-size.yOnly(), size};
+    case roBottomRight:
+      return {pos-size, size};
+    case roTopCenter:
+      return {pos-size.xOnly()/2, size};
+    case roLeftCenter:
+      return {pos-size.yOnly()/2, size};
+    case roRightCenter:
+      return {pos-IPos{size.x, size.y/2}, size};
+    case roBottomCenter:
+      return {pos-IPos{size.x/2, size.y}, size};
+    case roCenter:
+      return {pos-size/2, size};
+    case roScreenCenter:
+      return {IPos{con.width()/2-size.x/2, con.height()/2-size.y/2}, size};
+  }
+  return {};
+}

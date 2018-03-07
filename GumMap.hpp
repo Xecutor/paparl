@@ -8,6 +8,7 @@
 #include "cfov.hpp"
 #include "Console.hpp"
 
+template <class UserTileInfo>
 class GumMap{
 public:
   static CircularFov<IPos> cfov;
@@ -22,7 +23,7 @@ public:
     lightStrength=0;
     memBg=Color::black;
     memFg=Color::gray/2;
-    cacheChunk=0;
+    cacheChunk=nullptr;
     LOGDEBUG("map","ctor");
   }
   ~GumMap()
@@ -199,6 +200,7 @@ protected:
     {
       sym[0]=' ';sym[1]=0;memSym[0]=' ';memSym[1]=0;
     }
+    UserTileInfo user;
     TileInfo ti;
     uint32_t bg,fg,lightTint,lsTint;
     char sym[4];
@@ -316,3 +318,20 @@ protected:
   Color globalLightTint;
   Color memFg,memBg;
 };
+
+template <class UserTileInfo>
+CircularFov<IPos> GumMap<UserTileInfo>::cfov;
+template <class UserTileInfo>
+typename GumMap<UserTileInfo>::MyAStar GumMap<UserTileInfo>::astar;
+
+template <class UserTileInfo>
+bool GumMap<UserTileInfo>::findPath(int x0,int y0,int x1,int y1)
+{
+  astar.assignMap(this);
+  astar.setStartAndGoalStates(IPos(x0,y0),IPos(x1,y1));
+  MyAStar::AStarSearchState st;
+  while((st=astar.searchStep())==MyAStar::SEARCH_STATE_SEARCHING)
+  {
+  }
+  return st==MyAStar::SEARCH_STATE_SUCCEEDED;
+}

@@ -67,9 +67,9 @@ struct ConTest{
     con->curFg=Color::white;
     con->printAt({px, py},0, "@");
     con->fillRect({{40,0},{10,10}}, Color::blue);
-    con->printCenteredAt({40,0},10, Color::red, Color::black, Console::pfMakeBackgroundDarker, FORMAT("hello %{}", "world"));
+    //con->printCenteredAt({40,0},10, Color::red, Color::black, Console::pfMakeBackgroundDarker, FORMAT("hello %{}", "world"));
   }
-  GumMap map;
+  GumMap<int> map;
   Console* con;
   int px=10;
   int py=10;
@@ -100,7 +100,9 @@ protected:
 
 class TestScreen: public GameScreen {
 public:
-  TestScreen(Console& argCon, ScreensController* argScon):GameScreen(argCon, argScon){}
+  TestScreen(Console& argCon, ScreensController* argScon):GameScreen(argCon, argScon)
+  {
+  }
   virtual void onKeyboardEvent(const KeyboardEvent& evt)
   {
     if(evt.eventType==ketPress && evt.keySym==keyboard::GK_ESCAPE)
@@ -121,31 +123,24 @@ public:
 protected:
 };
 
-class MainMenu:public GameScreen{
+class MainMenu:public Menu{
 public:
-  MainMenu(Console& argCon, ScreensController* argScon):GameScreen(argCon, argScon)
+  MainMenu(Console& argCon, ScreensController* argScon):Menu(argCon, argScon, {})
   {
-    scon->pushScreen<Menu>(IPos{0,0})
-        .add("hello",[](){})
-        .add("world",[](){});
-    close();
-  }
-  void onKeyboardEvent(const KeyboardEvent& evt) override
-  {
-    if(evt.eventType==ketPress && evt.keySym==keyboard::GK_RETURN)
-    {
+    setAutoClose(false);
+    setTitle("Main menu");
+    add("hello",[this](){
       scon->pushScreen<TestScreen>();
-    }
-    if(evt.eventType==ketPress && evt.keySym==keyboard::GK_ESCAPE)
-    {
+    });
+    add("world",[this](){
       close();
-    }
+    });
   }
   void draw()override
   {
     con.curBg=Color::black;
     con.clear();
-    con.printAt({0,0}, Color::red, Color::black, 0, "main menu");
+    Menu::draw();
   }
 protected:
 };
@@ -161,7 +156,7 @@ int GliderAppMain(int argc,char* argv[])
     //╚════╝
     srand((unsigned int)time(nullptr));
     kst::Logger::Init("paparl.log");
-    GumMap::cfov.prepare(20);
+    GumMap<int>::cfov.prepare(20);
     engine.setVSync(false);
     int tileWidth=8;
     int tileHeight=15;
@@ -177,9 +172,6 @@ int GliderAppMain(int argc,char* argv[])
 
     ScreensController scon(*con);
     scon.pushScreen<MainMenu>();
-//    ConTest t;
-
-//    t.init(con.get());
     
     engine.assignHandler(con.get());
     engine.loop(con.get());

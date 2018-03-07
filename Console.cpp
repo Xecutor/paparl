@@ -216,17 +216,31 @@ void Console::printAt(IPos pos, const Color& fg, const Color& bg, uint32_t flags
   printAt(pos, flags, str);
 }
 
-void Console::printCenteredAt(IPos pos, int maxWidth, uint32_t flags, const char* str)
+void Console::printAlignedAt(IPos pos, int maxWidth, uint32_t flags, const char* str)
 {
   size_t len = strlen(str);
-  pos.x+=(maxWidth-len)/2;
+  if(flags&pfAlignCenter)
+  {
+    pos.x+=(maxWidth-len)/2;
+  }
+  else if(flags&pfAlignRight)
+  {
+    pos.x+=maxWidth - len;
+  }
   printAt(pos, flags, str);
 }
 
-void Console::printCenteredAt(IPos pos, int maxWidth, const Color& fg, const Color& bg, uint32_t flags, const char* str)
+void Console::printAlignedAt(IPos pos, int maxWidth, const Color& fg, const Color& bg, uint32_t flags, const char* str)
 {
   size_t len = strlen(str);
-  pos.x+=(maxWidth-(int)len)/2;
+  if(flags&pfAlignCenter)
+  {
+    pos.x+=(maxWidth-len)/2;
+  }
+  else if(flags&pfAlignRight)
+  {
+    pos.x+=maxWidth - len;
+  }
   printAt(pos, fg, bg, flags, str);
 }
 

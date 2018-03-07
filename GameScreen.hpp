@@ -1,7 +1,9 @@
 #pragma once
 
-#include "EventHandler.hpp"
 #include <memory>
+
+#include "EventHandler.hpp"
+#include "Types.hpp"
 
 using namespace glider;
 
@@ -28,12 +30,24 @@ public:
   {
     closeRequest = true;
   }
+  enum RectOrigin{
+    roTopLeft,
+    roTopRight,
+    roBottonLeft,
+    roBottomRight,
+    roTopCenter,
+    roLeftCenter,
+    roRightCenter,
+    roBottomCenter,
+    roCenter,
+    roScreenCenter
+  };
+  IRect calcRect(IPos origin, IPos size, RectOrigin ro);
 protected:
   Console& con;
   ScreensController* scon;
   bool closeRequest = false;
 };
-
 
 class ScreensController {
 public:

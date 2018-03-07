@@ -14,7 +14,7 @@ endif()
 
 add_subdirectory(glider)
 
-add_executable(paparl paparl.cpp GumMap.cpp Console.cpp GameScreen.cpp)
+add_executable(paparl paparl.cpp Console.cpp GameScreen.cpp)
 if(MSVC)
   target_compile_definitions(paparl PRIVATE -DWIN32_LEAN_AND_MEAN -DVC_EXTRALEAN -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
   set_target_properties(paparl PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
