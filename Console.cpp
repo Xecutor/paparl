@@ -120,7 +120,7 @@ Console::CharMap::iterator Console::initChar(ushort c, bool glow)
     txtGlow.setText(buf, true);
   }
   txt.setText(buf,true);
-  static kst::Logger* log=kst::Logger::getLogger("con.chr");
+  //static kst::Logger* log=kst::Logger::getLogger("con.chr");
   //LOGDEBUG(log,"char=%s/%x, w=%d, h=%d",buf,c,txt.getWidth(),txt.getHeight());
   int xfix=0;
   //    if(c==0x250c || c==0x2514 || c==0x2554 || c==0x255a || c==0x251c)
@@ -262,7 +262,7 @@ void Console::printAt(IPos argPos, uint32_t flags, const char* str)
       if(makebgdarker)
       {
         tempBg=bgm[y][x];
-        tempBg.changeLightness(0.6f);
+        tempBg.changeValue(0.6f);
         bgm[y][x]=tempBg.packTo32();
       }
       else if(writebg)

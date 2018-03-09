@@ -15,6 +15,7 @@ class GameScreen{
 public:
   GameScreen(Console& argCon, ScreensController* argScon):con(argCon), scon(argScon){}
   virtual ~GameScreen(){}
+  virtual void init(){}
   virtual void onMouseEvent(const MouseEvent& evt) {}
   virtual void onKeyboardEvent(const KeyboardEvent& evt) = 0;
   virtual void draw() = 0;

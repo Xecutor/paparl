@@ -1,11 +1,11 @@
 #pragma once
 
 #include <map>
-#include "GameObject.hpp"
+#include "GameActor.hpp"
 
 class TimeLine{
 public:
-  add(double offset, GameObjectPtr obj)
+  void add(double offset, GameActorPtr obj)
   {
     timeLine.emplace(currentTime + offset, obj);
   }
@@ -13,17 +13,19 @@ public:
   {
     return timeLine.empty();
   }
-  GameObjectPtr getNext()
+  GameActorPtr getNext()
   {
     if(timeLine.empty())
     {
       return {};
     }
-    auto rv = timeLine.begin()->second;
-    timeLine.erase(timeLine.begin());
+    auto it = timeLine.begin();
+    currentTime=it->first;
+    auto rv = it->second;
+    timeLine.erase(it);
     return rv;
   }
 protected:
   double currentTime;
-  std::multimap<double, GameObjectPtr> timeLine;
+  std::multimap<double, GameActorPtr> timeLine;
 };

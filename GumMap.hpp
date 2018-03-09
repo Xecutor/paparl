@@ -30,13 +30,21 @@ public:
   {
     LOGDEBUG("map","dtor");
   }
-  bool isInside(int x,int y)
+  bool isInside(int,int)
   {
     return true;
   }
-  TileInfo& getTile(int x,int y,int r)
+  TileInfo& getTile(int x,int y,int)
   {
     return getCell(x,y).ti;
+  }
+  UserTileInfo& getUserInfo(int x, int y)
+  {
+    return getCell(x,y).user;
+  }
+  UserTileInfo& getUserInfo(IPos pos)
+  {
+    return getCell(pos.x,pos.y).user;
   }
   void setVisible(int x,int y,int r)
   {
@@ -81,12 +89,19 @@ public:
     mc.lightSource=strength!=0;
     mc.lsStrength=strength;
     mc.lsTint=tint.packTo32();
+    lightChanged=true;
+  }
+
+  void setLightCone(IPos p, AngleRange cone)
+  {
+    getCell(p.x,p.y).lightCone=cone;
   }
 
   void setGlobalLight(uint16_t strength,const Color& tint)
   {
     globalLightStrength=strength;
     globalLightTint=tint;
+    lightChanged=true;
   }
 
   void setInfo(int x,int y,const Color& fg,const Color& bg,const std::string& sym)
@@ -109,8 +124,7 @@ public:
   void setSym(int x,int y,const std::string& sym)
   {
     MapCell& mc=getCell(x,y);
-    memcpy(mc.sym,sym.c_str(),3);
-    mc.sym[3]=0;
+    mc.setSym(sym);
   }
   void calcFov(int x,int y,int r)
   {
@@ -189,20 +203,35 @@ public:
       return dx*141+(dy-dx)*100;
     }
   }
+
+  void setMaxLightRadius(int newValue)
+  {
+    if(maxLightRadius!=newValue)
+    {
+      maxLightRadius=newValue;
+      lightChanged=true;
+    }
+  }
+
 protected:
 
   int maxLightRadius=15;
   const uint16_t impassableTile=65535;
+
+  bool lightChanged = true;
+  IPos lastLightPos;
 
   struct MapCell{
     MapCell():bg(Color::black.packTo32()),fg(Color::white.packTo32()),lightTint(0),lsTint(0),lightStrength(0),lsStrength(0),
         moveCost(100),visible(false),outdoors(true),lightSource(false)
     {
       sym[0]=' ';sym[1]=0;memSym[0]=' ';memSym[1]=0;
+      lightCone.closed=true;
     }
     UserTileInfo user;
     TileInfo ti;
     uint32_t bg,fg,lightTint,lsTint;
+    AngleRange lightCone{0,0};
     char sym[4];
     char memSym[4];
     uint16_t lightStrength,lsStrength;
@@ -212,21 +241,32 @@ protected:
     bool lightSource;
     void setSym(const std::string& argSym)
     {
-      memcpy(sym,argSym.c_str(),3);
+      size_t idx = 0;
+      while(idx<argSym.length() && idx<sizeof(sym))
+      {
+        sym[idx]=argSym[idx];
+        ++idx;
+      }
       sym[3]=0;
     }
     void saveMem()
     {
-      memcpy(memSym,sym,4);
+      memcpy(memSym,sym,sizeof(sym));
     }
   };
 
   void updateLight(int x0,int y0,int w,int h)
   {
+    if(!lightChanged && lastLightPos==IPos(x0,y0))
+    {
+      return;
+    }
+    lightChanged=false;
+    lastLightPos=IPos(x0,y0);
     x0-=maxLightRadius;
     y0-=maxLightRadius;
-    w+=maxLightRadius;
-    h+=maxLightRadius;
+    w+=maxLightRadius*2;
+    h+=maxLightRadius*2;
     std::vector<std::pair<MapCell*,IPos>> lightSources;
     for(int y=y0;y<y0+h;++y)
     {
@@ -247,7 +287,15 @@ protected:
       MapCell& mc=*p.first;
       lightTint=mc.lsTint;
       lightStrength=mc.lsStrength;
+      if(!mc.lightCone.closed)
+      {
+        cfov.setPermBlock(mc.lightCone);
+      }
       calcFov(p.second.x,p.second.y,mc.lsStrength*maxLightRadius/1000);
+      if(!mc.lightCone.closed)
+      {
+        cfov.clearPermBlock();
+      }
     }
     lightMode=false;
   }
@@ -301,7 +349,7 @@ protected:
     {
       return (*cacheChunk)[y&0xf][x&0xf];
     }
-    ChunkMap::iterator it=cm.find(cpos);
+    typename ChunkMap::iterator it=cm.find(cpos);
     if(it==cm.end())
     {
       it=cm.insert(ChunkMap::value_type(cpos,MapMatrix(16,MapVector(16)))).first;
@@ -329,7 +377,7 @@ bool GumMap<UserTileInfo>::findPath(int x0,int y0,int x1,int y1)
 {
   astar.assignMap(this);
   astar.setStartAndGoalStates(IPos(x0,y0),IPos(x1,y1));
-  MyAStar::AStarSearchState st;
+ typename MyAStar::AStarSearchState st;
   while((st=astar.searchStep())==MyAStar::SEARCH_STATE_SEARCHING)
   {
   }

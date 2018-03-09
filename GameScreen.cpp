@@ -9,6 +9,7 @@ ScreensController::ScreensController(Console& argCon):con(argCon)
 }
 void ScreensController::pushScreen(std::shared_ptr<GameScreen> screen)
 {
+  screen->init();
   screens.push_back(screen);
 }
 
