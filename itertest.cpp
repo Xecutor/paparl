@@ -12,6 +12,11 @@ int main()
     printf("%d, %d\n", p.x, p.y);
   }
   printf("===\n");
+  for(auto p:Recti<int>(0,0,0,5))
+  {
+    printf("%d, %d\n", p.x, p.y);
+  }
+  printf("===\n");
   for(auto p:Linei<int>({5,5},{5,10}))
   {
     printf("%d, %d\n", p.x, p.y);

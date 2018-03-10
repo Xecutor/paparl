@@ -54,7 +54,18 @@ void ScreensController::draw()
   }
   for(auto it = --rit.base(), end=screens.end();it!=end;++it)
   {
-    (*it)->draw();
+    auto screen=*it;
+    if(!screen->isFullScreen() && screen->dimBackground())
+    {
+      con.transformColors(con.getConRect(),[](Color& fg, Color& bg)
+      {
+        fg.changeValue(0.6f);
+        fg.changeSaturation(0.6f);
+        bg.changeValue(0.6f);
+        bg.changeSaturation(0.6f);
+      });
+    }
+    screen->draw();
   }
 }
 

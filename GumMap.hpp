@@ -71,6 +71,10 @@ public:
     }
     visCells.clear();
   }
+  const std::vector<IPos>& getVisibleCells()const
+  {
+    return visCells;
+  }
   void setBlock(int x,int y,bool value)
   {
     getCell(x,y).ti.block=value;
@@ -82,6 +86,10 @@ public:
   void setMoveCost(int x,int y,uint16_t value)
   {
     getCell(x,y).moveCost=value;
+  }
+  void setLightSource(IPos p,uint16_t strength,const Color& tint)
+  {
+    setLightSource(p.x, p.y, strength, tint);
   }
   void setLightSource(int x,int y,uint16_t strength,const Color& tint)
   {
@@ -104,6 +112,10 @@ public:
     lightChanged=true;
   }
 
+  void setInfo(IPos p,const Color& fg,const Color& bg,const std::string& sym)
+  {
+    setInfo(p.x, p.y, fg, bg, sym);
+  }
   void setInfo(int x,int y,const Color& fg,const Color& bg,const std::string& sym)
   {
     MapCell& mc=getCell(x,y);
@@ -134,7 +146,20 @@ public:
   {
     return getCell(x,y).visible;
   }
-  Color getBg(int x,int y)
+  bool getVis(IPos p)
+  {
+    return getCell(p.x,p.y).visible;
+  }
+  Color getBg(IPos p)
+  {
+    MapCell& mc=getCell(p.x,p.y);
+    return mc.bg;
+  }
+  Color getLitBg(IPos p)
+  {
+    return getLitBg(p.x, p.y);
+  }
+  Color getLitBg(int x,int y)
   {
     MapCell& mc=getCell(x,y);
     return calcLitColor(mc.bg,mc.lightTint,mc.lightStrength,mc.outdoors);
@@ -166,6 +191,10 @@ public:
         }
       }
     }
+  }
+  bool findPath(IPos from, IPos to)
+  {
+    return findPath(from.x, from.y, to.x, to.y);
   }
   bool findPath(int x0,int y0,int x1,int y1);
   uint32_t getHash(const IPos& pos)
@@ -213,10 +242,11 @@ public:
     }
   }
 
+  static const uint16_t impassableTile=65535;
+
 protected:
 
   int maxLightRadius=15;
-  const uint16_t impassableTile=65535;
 
   bool lightChanged = true;
   IPos lastLightPos;
@@ -232,22 +262,22 @@ protected:
     TileInfo ti;
     uint32_t bg,fg,lightTint,lsTint;
     AngleRange lightCone{0,0};
-    char sym[4];
-    char memSym[4];
     uint16_t lightStrength,lsStrength;
     uint16_t moveCost;
+    char sym[5];
+    char memSym[5];
     bool visible;
     bool outdoors;
     bool lightSource;
     void setSym(const std::string& argSym)
     {
       size_t idx = 0;
-      while(idx<argSym.length() && idx<sizeof(sym))
+      while(idx<argSym.length() && idx<sizeof(sym)-1)
       {
         sym[idx]=argSym[idx];
         ++idx;
       }
-      sym[3]=0;
+      sym[idx]=0;
     }
     void saveMem()
     {
@@ -317,7 +347,7 @@ protected:
     }
     Color tclr=clr;
     tclr.tint(tint);
-    rv=(rv+tclr)/2.0;
+    rv=(rv+tclr)/2.0f;
     rv.clamp();
     return rv;
   }

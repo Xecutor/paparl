@@ -13,6 +13,7 @@
 #include "GumMap.hpp"
 #include "Menu.hpp"
 #include "CombatScreen.hpp"
+#include "Enemy.hpp"
 
 using namespace glider;
 
@@ -23,7 +24,8 @@ public:
     setAutoClose(false);
     add("Start Game",[this](){
       MissionDetails md;
-      md.mt=MissionTime::day;
+      md.mt=MissionTime::night;
+      md.enemies.push_back({EnemyType::angryGhost, true, 3});
       scon->pushScreen<CombatScreen>(md);
     });
     add("Quit",[this](){
@@ -52,6 +54,8 @@ int GliderAppMain(int argc,char* argv[])
     kst::Logger::Init("paparl.log");
     GumMap<int>::cfov.prepare(20);
     engine.setVSync(false);
+//    int tileWidth=13;
+//    int tileHeight=15;
     int tileWidth=8;
     int tileHeight=15;
     int conWidth=120;

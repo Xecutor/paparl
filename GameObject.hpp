@@ -23,6 +23,18 @@ public:
   {
     return sym;
   }
+  bool getLightSource()const
+  {
+    return lightSource;
+  }
+  uint16_t getLightStrength()const
+  {
+    return lightStrength;
+  }
+  const Color& getLightTint()const
+  {
+    return lightTint;
+  }
   const Color getFg()const
   {
     return fg;
@@ -31,11 +43,21 @@ public:
   {
     return fg;
   }
+  const std::string& getName()const
+  {
+    return name;
+  }
+
 protected:
   IPos pos;
+  std::string name;
   std::string sym;
   Color fg;
   Color bg;
+  bool lightSource = false;
+  uint16_t lightStrength = 0;
+  Color lightTint;
+
 };
 
 

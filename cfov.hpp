@@ -424,8 +424,15 @@ public:
     havePermBlock=false;
   }
 
-protected:
   typedef std::vector<FovCell<P> > Ring;
+
+  const Ring& getRing(int r)
+  {
+    prepare(r);
+    return fov[r];
+  }
+
+protected:
   typedef std::vector<Ring> Circle;
 
   float minTransRate;

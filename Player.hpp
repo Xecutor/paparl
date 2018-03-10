@@ -1,11 +1,22 @@
 #pragma once
 
-#include "GameActor.hpp"
+#include "AgentActor.hpp"
 
-class Player:public GameActor{
+class Player:public AgentActor{
 public:
-    Player();
-    double makeTurn(GameLoop* game);
+  Player();
+  double makeTurn(GameLoop* game);
+  void toggleFlashLight()
+  {
+    if(lightStrength==300)
+    {
+      lightStrength=1000;
+    }
+    else
+    {
+      lightStrength=300;
+    }
+  }
 protected:
 };
 

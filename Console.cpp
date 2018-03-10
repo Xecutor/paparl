@@ -158,6 +158,58 @@ Console::CharMap::iterator Console::initChar(ushort c, bool glow)
   return it;
 }
 
+void Console::clearRect(IRect r)
+{
+  CharMap::iterator it=cm.find(' ');
+  uint32_t fg32 = curFg.packTo32();
+  uint32_t bg32 = curBg.packTo32();
+  auto conRect=getConRect();
+  for(auto p:r)
+  {
+    if(!conRect.isInside(p))
+    {
+      continue;
+    }
+    sym[p.y][p.x]=' ';
+    fgm[p.y][p.x]=fg32;
+    bgm[p.y][p.x]=bg32;
+    int idx = p.y*w*4+p.x*4;
+    glider::Rect(it->second.x,it->second.y,cw,ch).setQuad(vb.getTBuf(),idx);
+    vb.getCBuf().set4(curFg,idx);
+    bg.getCBuf().set4(curBg,idx);
+  }
+}
+
+void Console::transformColors(IRect r, std::function<void(Color&, Color&)> cb)
+{
+  auto conRect=getConRect();
+  for(auto p:r)
+  {
+    if(!conRect.isInside(p))
+    {
+      continue;
+    }
+    uint32_t fgclr=fgm[p.y][p.x];
+    uint32_t bgclr=bgm[p.y][p.x];
+    Color cfg(fgclr);
+    Color cbg(bgclr);
+    cb(cfg, cbg);
+    uint32_t fgclr2=cfg.packTo32();
+    uint32_t bgclr2=cbg.packTo32();
+    int idx = p.y*w*4+p.x*4;
+    if(fgclr2!=fgclr)
+    {
+      fgm[p.y][p.x]=fgclr2;
+      vb.getCBuf().set4(cfg,idx);
+    }
+    if(bgclr2!=bgclr)
+    {
+      bgm[p.y][p.x]=bgclr2;
+      bg.getCBuf().set4(cbg,idx);
+    }
+  }
+}
+
 void Console::clear()
 {
   int idx = 0;
@@ -253,10 +305,11 @@ void Console::printAt(IPos argPos, uint32_t flags, const char* str)
   bool writefg = (flags & pfKeepForeground)==0;
   bool makebgdarker = (flags & pfMakeBackgroundDarker)!=0;
   Color tempBg;
+  auto conRect=getConRect();
   while(str[pos])
   {
     ushort c=UString::getNextSymbol(str,pos);
-    if(Recti<int>(0,0,w,h).isInside(IPos(x,y)))
+    if(conRect.isInside(IPos(x,y)))
     {
       sym[y][x]=c;
       if(makebgdarker)

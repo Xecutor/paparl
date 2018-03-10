@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <string>
 #include <functional>
 #include <stdint.h>
 
@@ -28,6 +29,8 @@ public:
   Color curFg,curBg;
   bool curGlow = false;
   void clear();
+  void clearRect(IRect r);
+  void transformColors(IRect r, std::function<void(Color&, Color&)> cb);
   enum PrintFlags{
     pfKeepBackground = 0x01,
     pfKeepForeground = 0x02,
@@ -64,10 +67,18 @@ public:
   {
     mouseCb = argMouseCb;
   }
+  IRect getConRect()const
+  {
+    return {0,0,w,h};
+  }
+  IPos screenToCon(IPos pos)
+  {
+    return {pos.x/tileWidth, pos.y/tileHeight};
+  }
 protected:
   virtual void onActiveChange(bool active){}
   virtual void onResize(){}
-  virtual void onQuit()
+  virtual void onQuit()override
   {
     engine.exitApp();
   }

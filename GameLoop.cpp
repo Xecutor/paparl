@@ -2,19 +2,50 @@
 #include "Console.hpp"
 #include "EventHandler.hpp"
 #include "Enemy.hpp"
+#include "MapGenerators.hpp"
 
 GameLoop::GameLoop(Console& argCon, ScreensController* argSCon):GameScreen(argCon, argSCon)
 {
   player = std::make_shared<Player>();
-  timeLine.add(0.0, player);
-  turn();
 }
+
+void GameLoop::addActor(IPos pos, float actDelay, GameActorPtr actor)
+{
+  timeLine.add(actDelay, actor);
+  actor->setPos(pos);
+  addActorToMap(actor);
+}
+
+void GameLoop::addActorToMap(GameActorPtr actor)
+{
+  map.getUserInfo(actor->getPos()).actor=actor;
+  map.setInfo(actor->getPos(), actor->getFg(), map.getBg(actor->getPos()), actor->getSym());
+  if(actor->getLightSource())
+  {
+    map.setLightSource(actor->getPos(), actor->getLightStrength(), actor->getLightTint());
+  }
+}
+
+void GameLoop::removeActorFromMap(GameActorPtr actor)
+{
+  map.getUserInfo(actor->getPos()).actor.reset();
+  fillTileInfo(map, actor->getPos(), *map.getUserInfo(actor->getPos()).tile);
+}
+
 
 void GameLoop::turn()
 {
   while(!stopForPlayerTurn && !timeLine.empty())
   {
     auto actor=timeLine.getNext();
+    if(actor->getHp()<=0.0f)
+    {
+      removeActorFromMap(actor);
+      LOGINFO("gameloop", "actor %{} died at %{}", actor->getName(), actor->getPos());
+      continue;
+    }
+    LOGDEBUG("gameloop", "%{} making turn at %{}", actor->getName(), (int)(100.0*timeLine.getCurrentTime()));
+    actor->beforeTurn();
     double actCost = actor->makeTurn(this);
     if(actCost>0.0)
     {
@@ -24,65 +55,38 @@ void GameLoop::turn()
   stopForPlayerTurn = false;
 }
 
-void GameLoop::moveActorBy(GameActorPtr ptr, IPos d)
+int GameLoop::canActorMoveTo(GameActor& act, IPos d)
 {
-  map.getUserInfo(ptr->getPos()).actor.reset();
-  ptr->moveBy(d);
-  map.getUserInfo(ptr->getPos()).actor=ptr;
+  TileObjects& to=map.getUserInfo(act.getPos()+d);
+  if(to.actor)
+  {
+    return -1;
+  }
+  return to.tile->walkCost;
 }
 
-void GameLoop::onKeyboardEvent(const KeyboardEvent &evt)
+float GameLoop::moveActorBy(GameActorPtr ptr, IPos d)
 {
-  if(evt.eventType!=ketPress)
-  {
-    return;
-  }
-  using namespace keyboard;
-  IPos d;
-  switch(evt.keySym)
-  {
-    case GK_LEFT:
-    case GK_KP_4:
-      d={-1,0};
-      break;
-    case GK_RIGHT:
-    case GK_KP_6:
-      d={1,0};
-      break;
-    case GK_UP:
-    case GK_KP_8:
-      d={0,-1};
-      break;
-    case GK_DOWN:
-    case GK_KP_2:
-      d={0,1};
-      break;
-    case GK_KP_7:
-      d={-1,-1};
-      break;
-    case GK_KP_9:
-      d={1,-1};
-      break;
-    case GK_KP_1:
-      d={-1,1};
-      break;
-    case GK_KP_3:
-      d={1,1};
-      break;
-    default:
-      break;
-  }
-  moveActorBy(player, d);
-  timeLine.add(1.0, player);
-  turn();
+  removeActorFromMap(ptr);
+  ptr->moveBy(d);
+  addActorToMap(ptr);
+  TileObjects& to=map.getUserInfo(ptr->getPos());
+  int wc=to.tile->walkCost;
+  float moveCost = wc/100.0f;
+  moveCost /= ptr->getSpeed();
+  return moveCost;
 }
 
 void GameLoop::playerTurn()
 {
+  if(player->getLightSource())
+  {
+    map.setLightSource(player->getPos(), player->getLightStrength(), player->getLightTint());
+  }
   stopForPlayerTurn = true;
   map.clearVisibility();
   auto pp = player->getPos();
-  map.calcFov(pp.x, pp.y, 40);
+  map.calcFov(pp.x, pp.y, 20);
 }
 
 void GameLoop::draw()
@@ -96,13 +100,6 @@ void GameLoop::draw()
   int mw=con.width()-mapOffsetX;
   int mh=con.height()-mapOffsetY;
   map.draw(&con, mx, my, mapOffsetX, mapOffsetY, mw, mh);
-  con.printAt({mapOffsetX+dx,mapOffsetY+dy}, Color::white, {}, Console::pfKeepBackground, "@");
-  IRect visRect(mx, my, mw, mh);
-  for(auto a:actors)
-  {
-    if(visRect.isInside(a->getPos()))
-    {
-      con.printAt({mapOffsetX+a->getPos().x-mx,mapOffsetY+a->getPos().y-my},a->getFg(), {}, Console::pfKeepBackground, a->getSym().c_str());
-    }
-  }
+  //con.printAt({mapOffsetX+dx,mapOffsetY+dy}, Color::white, {}, Console::pfKeepBackground, "@");
+  drawPanel();
 }

@@ -16,12 +16,16 @@ public:
   GameScreen(Console& argCon, ScreensController* argScon):con(argCon), scon(argScon){}
   virtual ~GameScreen(){}
   virtual void init(){}
-  virtual void onMouseEvent(const MouseEvent& evt) {}
+  virtual void onMouseEvent(const MouseEvent& /*evt*/) {}
   virtual void onKeyboardEvent(const KeyboardEvent& evt) = 0;
   virtual void draw() = 0;
   virtual bool isFullScreen()const
   {
     return true;
+  }
+  virtual bool dimBackground()const
+  {
+    return false;
   }
   bool needToClose()const
   {

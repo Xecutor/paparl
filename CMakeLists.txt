@@ -26,7 +26,8 @@ add_executable(paparl
     GameLoop.cpp
     Player.cpp
     CombatScreen.cpp
-    Enemy.cpp)
+    Enemy.cpp
+    AgentActor.cpp)
 
 target_compile_features(paparl PRIVATE cxx_std_14)
 

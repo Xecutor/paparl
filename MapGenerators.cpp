@@ -1,48 +1,22 @@
 #include "MapGenerators.hpp"
 #include "GameLoop.hpp"
-#include "MissonDetails.hpp"
-#include <random>
+#include "MissionDetails.hpp"
+#include "Rand.hpp"
 
 void fillTileInfo(GameMap& map, IPos p, const GameTile& tile)
 {
   map.getUserInfo(p).tile=&tile;
   map.setInfo(p.x, p.y, tile.fg, tile.bg, tile.sym);
-  map.setMoveCost(p.x, p.y, tile.walkCost);
+  map.setMoveCost(p.x, p.y, tile.walkCost > 0 ? tile.walkCost : GameMap::impassableTile);
   map.setBlock(p.x, p.y, tile.blocksLight);
   if(tile.lightSource)
   {
-    map.setLightSource(p.x, p.y, tile.lightStrength, tile.lightTint);
+    map.setLightSource(p, tile.lightStrength, tile.lightTint);
   }
-}
-
-int intRand(std::mt19937& rnd, int minVal, int maxValEx)
-{
-  double v = rnd();
-  v-=rnd.min();
-  v/=((double)rnd.max())+1.0;
-  v*=(maxValEx-minVal);
-  v+=minVal;
-  return (int)v;
-}
-
-bool boolRand(std::mt19937& rnd)
-{
-  auto v = rnd();
-  v-=rnd.min();
-  return v>=(rnd.max()-rnd.min())/2;
-}
-
-double dblRand(std::mt19937& rnd)
-{
-  double v = rnd();
-  v-=rnd.min();
-  v/=((double)rnd.max())+1.0;
-  return v;
-}
-
-bool chanceRand(std::mt19937& rnd, double chance)
-{
-  return dblRand(rnd)<chance;
+  else
+  {
+    map.setLightSource(p, 0, {});
+  }
 }
 
 class BSPTree{
@@ -238,10 +212,37 @@ public:
   {
     return entrance;
   }
+  void genEnemies(const std::vector<IRect>& placement)
+  {
+    std::set<IPos> used;
+    for(auto& e:md.enemies)
+    {
+      IRect br=vectorRand(rnd, placement);
+      for(int i=0;i<e.count;++i)
+      {
+        IPos rp;
+        do{
+          rp=rectRand(rnd, br);
+        }while(used.find(rp)!=used.end());
+        enemies.push_back({e.et, rp});
+        if(e.scattered)
+        {
+          br=vectorRand(rnd, placement);
+        }
+      }
+    }
+  }
+
+  const std::vector<MissionDetails::EnemyPosition>& getEnemiesPositions()
+  {
+    return enemies;
+  }
+
 protected:
   std::mt19937 rnd;
   MissionDetails md;
   IPos entrance;
+  std::vector<MissionDetails::EnemyPosition> enemies;
 };
 
 /*
@@ -313,7 +314,7 @@ void makeCar(GameMap& map, IPos pos, Dir d, Color clr, bool lights)
         gtt=GTT::carH;
       }
     }
-    auto tile=getTile(gtt);
+    auto& tile=getTile(gtt);
     p+=pos;
     Color bg=map.getUserInfo(p.x, p.y).tile->bg;
     fillTileInfo(map, p, tile);
@@ -326,6 +327,25 @@ void makeCar(GameMap& map, IPos pos, Dir d, Color clr, bool lights)
     }
 
     ++idx;
+  }
+}
+
+void makeBarrier(GameMap& map, const IRect& mapRect)
+{
+  auto& btile=getTile(GameTileType::barrier);
+  int x0=mapRect.pos.x-1;
+  int y0=mapRect.pos.y-1;
+  int x1=x0+mapRect.size.x+1;
+  int y1=x0+mapRect.size.y+1;
+  for(int x=x0;x<=x1;++x)
+  {
+    fillTileInfo(map, {x,y0}, btile);
+    fillTileInfo(map, {x,y1}, btile);
+  }
+  for(int y=y0;y<=y1;++y)
+  {
+    fillTileInfo(map, {x0,y}, btile);
+    fillTileInfo(map, {x1,y}, btile);
   }
 }
 
@@ -350,17 +370,18 @@ public:
   }
   void generate(GameMap& map)override
   {
+    IRect mapRect(0,0,200,200);
     BSPTree bsp(rnd);
-    bsp.init(15,20,5,11);
+    bsp.init(18,23,5,11);
     bsp.setBorderWidthCalculator(borderWidthCalculator);
-    bsp.create({{0,0},{200,200}});
+    bsp.create(mapRect);
     auto borders=bsp.getBorders();
     entrance=borders.front()->border.pos+borders.front()->border.size/2;
     for(auto n:borders)
     {
-      auto tile = n->depth<5?getTile(GameTileType::aslphalt) : getTile(GameTileType::tilepath);
-      auto htile = getTile(GameTileType::aslphaltHLine);
-      auto vtile = getTile(GameTileType::aslphaltVLine);
+      auto& tile = n->depth<5?getTile(GameTileType::aslphalt) : getTile(GameTileType::tilepath);
+      auto& htile = getTile(GameTileType::aslphaltHLine);
+      auto& vtile = getTile(GameTileType::aslphaltVLine);
       for(auto p:n->border)
       {
         if(n->depth<=4 && n->nt==BSPTree::NodeType::intermediateH && p.x==n->border.pos.x+n->border.size.x/2)
@@ -377,17 +398,90 @@ public:
         }
       }
     }
+    int carsCount=intRand(rnd, 20,30);
+
+    for(int i=0;i<carsCount;++i)
+    {
+      IPos carPos;
+      Dir carDir;
+      for(;;)
+      {
+        auto n=vectorRand(rnd, borders);
+        if(n->depth>4)
+        {
+          continue;
+        }
+        int lanes;
+        IPos off;
+        IPos sz;
+        if(n->nt==BSPTree::NodeType::intermediateH)
+        {
+          lanes=n->border.size.x>7?2:1;
+          carDir=boolRand(rnd)?Dir::up:Dir::down;
+          if(carDir==Dir::up)
+          {
+            carPos.x=(n->border.tre().x-intRand(rnd,0,lanes)*3)-1;
+          }
+          else
+          {
+            carPos.x=(n->border.tle().x+intRand(rnd,0,lanes)*3)+1;
+          }
+          carPos.y=n->border.pos.y+3+intRand(rnd,3,n->border.size.y-6);
+          off=IPos(1,3);
+          sz=IPos(3,7);
+        }
+        else
+        {
+          lanes = n->border.size.y>7?2:1;
+          carDir=boolRand(rnd)?Dir::left:Dir::right;
+          if(carDir==Dir::left)
+          {
+            carPos.y=(n->border.tle().y+intRand(rnd, 0, lanes)*3)+1;
+          }
+          else
+          {
+            carPos.y=(n->border.ble().y-intRand(rnd,0, lanes)*3)-1;
+          }
+          carPos.x=n->border.pos.x+3+intRand(rnd, 3, n->border.size.x-6);
+          off=IPos(3,1);
+          sz=IPos(7,3);
+        }
+        bool good=true;
+        for(auto p:IRect(carPos-off,sz))
+        {
+          if(map.getUserInfo(p).tile->gtt!=GameTileType::aslphalt)
+          {
+            good=false;
+            break;
+          }
+        }
+        if(good)
+        {
+          break;
+        }
+      }
+      float r=0.5f+intRand(rnd, 0, 128)/127.0f;
+      float g=0.5f+intRand(rnd, 0, 128)/127.0f;
+      float b=0.5f+intRand(rnd, 0, 128)/127.0f;
+      Color carColor(r,g,b);
+      makeCar(map, carPos, carDir, carColor, md.mt!=MissionTime::day);
+    }
+
+
     auto buildings = bsp.getRooms();
     for(auto n:buildings)
     {
-      auto wtile = getTile(GameTileType::concreteWall);
-      auto ptile = getTile(GameTileType::tilepath);
-      auto gtile = getTile(GameTileType::glassWall);
-      auto ftile1 = getTile(GameTileType::interiorFloor1);
-      auto ftile2 = getTile(GameTileType::interiorFloor2);
+      auto& wtile = getTile(GameTileType::concreteWall);
+      auto& ptile = getTile(GameTileType::tilepath);
+      auto& gtile = getTile(GameTileType::glassWall);
+      auto& ftile1 = getTile(GameTileType::interiorFloor1);
+      auto& ftile2 = getTile(GameTileType::interiorFloor2);
       IRect r = n->rect;
-      r.pos+=IPos(3,3);
-      r.size-=IPos(6,6);
+      //reserve some space around building
+      r.pos+=IPos(5,5);
+      r.size-=IPos(10,10);
+
+      //pathtile around building
       for(auto p:n->rect)
       {
         if(!r.isInside(p))
@@ -399,10 +493,12 @@ public:
       {
         if(r.onBorder(p))
         {
+          //building walls
           fillTileInfo(map, p, wtile);
         }
         else
         {
+          //building floor
           if((p.x+p.y)%2)
           {
             fillTileInfo(map, p, ftile1);
@@ -413,45 +509,57 @@ public:
           }
         }
       }
-      int windowWall=intRand(rnd,0, 4);
-      IPos wstart,wend;
-      IPos wdir;
-      switch(windowWall)
+      //bushes and benches around building
       {
-        case 0:
+        int decorSides=intRand(rnd, 0, 15);
+        auto& bush=getTile(GameTileType::bush);
+        auto& bench=getTile(GameTileType::bench);
+        for(int i=0;i<4;++i)
         {
-          wstart=r.tle()+IPos(3,0);
-          wend=r.tre()-IPos(3,0);
-          wdir=IPos(0,1);
-          break;
-        }
-        case 1:
-        {
-          wstart=r.tre()+IPos(0,3);
-          wend=r.bre()-IPos(0,3);
-          wdir=IPos(-1,0);
-          break;
-        }
-        case 2:
-        {
-          wstart=r.bre()-IPos(3,0);
-          wend=r.ble()+IPos(3,0);
-          wdir=IPos(0,-1);
-          break;
-        }
-        case 3:
-        {
-          wstart=r.ble()-IPos(0,3);
-          wend=r.tle()+IPos(0,3);
-          wdir=IPos(1,0);
-          break;
+          if(!(decorSides&(1<<i)))
+          {
+            continue;
+          }
+          bool haveBench=boolRand(rnd);
+          Dir d=getDir4FromInt(i);
+          ILine side=getRectSide(n->rect, d);
+          int count=0;
+          for(auto p:side)
+          {
+            if(((count++)%3)==0)
+            {
+              if(count>6 && haveBench)
+              {
+                fillTileInfo(map, p, bench);
+                haveBench=false;
+              }
+              else
+              {
+                fillTileInfo(map, p, bush);
+              }
+            }
+          }
         }
       }
-      for(auto p:Linei<int>(wstart, wend))
+
       {
-        fillTileInfo(map, p, gtile);
-      }
-      {
+        int windowWall=intRand(rnd,0, 4);
+        Dir wd=getDir4FromInt(windowWall);
+        ILine side=getRectSide(r, wd);
+        IPos norm=getDir(wd);
+        norm.rotCW();
+        side.startPos+=norm*3;
+        norm=getDir(wd);
+        norm.rotCCW();
+        side.endPos+=norm*3;
+        IPos wdir=IPos(0,0)-getDir(wd);
+
+        for(auto p:side)
+        {
+          fillTileInfo(map, p, gtile);
+        }
+        IPos wstart=side.startPos;
+        IPos wend=side.endPos;
         IPos ddstart=wdir;
         ddstart.rotCW();
         IPos ddend=wdir;
@@ -460,22 +568,28 @@ public:
         {
           fillTileInfo(map, p, wtile);
         }
-      }
-      if(chanceRand(rnd, 0.7))
-      {
-        auto clight = getTile(GameTileType::ceilingLight);
-        fillTileInfo(map, (wstart+wdir*2+wend)/2, clight);
+        if(chanceRand(rnd, 0.7))
+        {
+          auto& clight = getTile(GameTileType::ceilingLight);
+          fillTileInfo(map, (wstart+wdir*2+wend)/2, clight);
+        }
       }
 
-
-      auto ltile = md.mt==MissionTime::day?getTile(GameTileType::streetLightOff):getTile(GameTileType::streetLight);
-      auto bltile = getTile(GameTileType::brokenStreetLight);
+      auto& ltile = md.mt==MissionTime::day?getTile(GameTileType::streetLightOff):getTile(GameTileType::streetLight);
+      auto& bltile = getTile(GameTileType::brokenStreetLight);
       fillTileInfo(map, r.tle()-IPos{2,2}, chanceRand(rnd, 0.02)?bltile:ltile);
       fillTileInfo(map, r.tre()+IPos{2,-2}, chanceRand(rnd, 0.02)?bltile:ltile);
       fillTileInfo(map, r.ble()-IPos{2,-2}, chanceRand(rnd, 0.02)?bltile:ltile);
       fillTileInfo(map, r.bre()+IPos{2,2}, chanceRand(rnd, 0.02)?bltile:ltile);
     }
-    makeCar(map, entrance+IPos(3,3), Dir::down, Color::red, true);
+    //makeCar(map, entrance+IPos(3,3), Dir::down, Color::red, true);
+    makeBarrier(map, mapRect);
+    std::vector<IRect> enemiesPlacement;
+    for(auto& b:borders)
+    {
+      enemiesPlacement.push_back(b->border);
+    }
+    genEnemies(enemiesPlacement);
   }
 protected:
 };
@@ -507,7 +621,7 @@ public:
 protected:
 };
 
-IPos generateLevel(GeneratorType gt, uint32_t seed, const MissionDetails& md, GameMap& map)
+IPos generateLevel(GeneratorType gt, uint32_t seed, const MissionDetails& md, std::vector<MissionDetails::EnemyPosition>& enemies, GameMap& map)
 {
   std::unique_ptr<Generator> gen;
   switch(gt)
@@ -526,5 +640,6 @@ IPos generateLevel(GeneratorType gt, uint32_t seed, const MissionDetails& md, Ga
   }
   gen->init(seed, md);
   gen->generate(map);
+  enemies=gen->getEnemiesPositions();
   return gen->getEntrance();
 }

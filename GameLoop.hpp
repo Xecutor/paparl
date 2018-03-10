@@ -25,10 +25,33 @@ public:
   GameLoop(Console& argCon, ScreensController* argSCon);
   void turn();
   void draw();
-  void onKeyboardEvent(const KeyboardEvent &evt);
   void playerTurn();
 
-  void moveActorBy(GameActorPtr ptr, IPos d);
+  virtual void drawPanel()=0;
+
+  //>0 move cost
+  //==0 cannot move
+  //-1 occupied by another actor
+  int canActorMoveTo(GameActor& ptr, IPos d);
+  float moveActorBy(GameActorPtr ptr, IPos d);
+
+
+  void addActor(IPos pos, float actDelay, GameActorPtr actor);
+
+  PlayerPtr getPlayer()
+  {
+    return player;
+  }
+
+  GameMap& getMap()
+  {
+    return map;
+  }
+
+  IRect getMapArea()const
+  {
+    return {{mapOffsetX,mapOffsetY}, {con.width()-mapOffsetX, con.height()-mapOffsetY}};
+  }
 
 protected:
   const int mapOffsetX=40;
@@ -38,4 +61,8 @@ protected:
   PlayerPtr player;
   bool stopForPlayerTurn = false;
   std::vector<GameActorPtr> actors;
+
+  void addActorToMap(GameActorPtr actor);
+  void removeActorFromMap(GameActorPtr actor);
+
 };
