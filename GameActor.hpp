@@ -18,6 +18,10 @@ public:
   {
     return false;
   }
+  virtual bool isHidden(float /*prcLevel*/)const
+  {
+    return false;
+  }
 protected:
   float hp=1.0f;
 };

@@ -9,8 +9,8 @@ ScreensController::ScreensController(Console& argCon):con(argCon)
 }
 void ScreensController::pushScreen(std::shared_ptr<GameScreen> screen)
 {
-  screen->init();
   screens.push_back(screen);
+  screen->init();
 }
 
 void ScreensController::onMouseEvent(const MouseEvent& evt)
@@ -37,24 +37,25 @@ void ScreensController::draw()
   {
     return screen->needToClose();
   };
+  auto oldSize=screens.size();
   screens.erase(std::remove_if(screens.begin(), screens.end(),removePred), screens.end());
   if(screens.empty())
   {
     engine.exitLoop();
     return;
   }
-  auto rit = screens.rbegin();
-  while(rit!=screens.rend() && !(*rit)->isFullScreen())
+  if(oldSize!=screens.size())
   {
-    ++rit;
+    screens.back()->onTopScreen();
   }
-  if(rit==screens.rend())
+  size_t idx = screens.size() - 1;
+  while(idx>0 && !screens[idx]->isFullScreen())
   {
-    --rit;
+    --idx;
   }
-  for(auto it = --rit.base(), end=screens.end();it!=end;++it)
+  for(;idx<screens.size();++idx)
   {
-    auto screen=*it;
+    auto screen=screens[idx];
     if(!screen->isFullScreen() && screen->dimBackground())
     {
       con.transformColors(con.getConRect(),[](Color& fg, Color& bg)

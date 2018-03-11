@@ -26,9 +26,14 @@ void AgentActor::beforeTurn()
   }
 }
 
+float AgentActor::getAttackBonus() const
+{
+  return (1.0f+nrgy[nsAttack]);
+}
+
 float AgentActor::getAttack()const
 {
-  return baseAttack*(1.0f+nrgy[nsAttack]);
+  return baseAttack*getAttackBonus();
 }
 
 float AgentActor::getDefense()const

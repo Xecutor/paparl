@@ -1,19 +1,14 @@
-#include <cstdint>
-#include <list>
-#include <map>
-#include <vector>
-#include <math.h>
-
 #include <stdio.h>
+
 #include "Engine.hpp"
 #include "ResourcesManager.hpp"
-#include "Rectangle.hpp"
 #include "kst/Logger.hpp"
 #include "Console.hpp"
 #include "GumMap.hpp"
 #include "Menu.hpp"
-#include "CombatScreen.hpp"
 #include "Enemy.hpp"
+#include "MissionControl.hpp"
+#include "TextMessage.hpp"
 
 using namespace glider;
 
@@ -22,20 +17,33 @@ public:
   MainMenu(Console& argCon, ScreensController* argScon):Menu(argCon, argScon, {})
   {
     setAutoClose(false);
-    add("Start Game",[this](){
-      MissionDetails md;
-      md.mt=MissionTime::night;
-      md.enemies.push_back({EnemyType::angryGhost, true, 3});
-      scon->pushScreen<CombatScreen>(md);
+  }
+  void init()override
+  {
+    const char* menuCaption=MissionControl::saveExists()?"Continue game":"Start game";
+    clear();
+    add(menuCaption,[this](){
+      scon->pushScreen<MissionControl>();
     });
     add("Quit",[this](){
       close();
     });
   }
+  void onTopScreen()override
+  {
+    init();
+  }
   void draw()override
   {
     con.curBg=Color::black;
     con.clear();
+    con.fillRect(IRect(0,0,con.width(),1), Color::gray);
+    con.curFg=Color::white;
+    con.printAlignedAt({0,0}, con.width(), Console::pfAlignCenter|Console::pfKeepBackground, "P.A.P.A. roguelike");
+    con.curBg=Color::black;
+    con.curFg=Color::gray/3;
+    con.printAlignedAt({0,5}, con.width(), Console::pfAlignCenter, "Paronormal Activities Prevention Agency");
+    con.printAt({0, con.height()-1}, Color::white, Color::black, 0, "Created for 7drl 2018 by Konstantin 'Xecutor' Stupnik");
     Menu::draw();
   }
 protected:
@@ -43,6 +51,8 @@ protected:
 
 int GliderAppMain(int argc,char* argv[])
 {
+  (void)argc;
+  (void)argv;
 #ifdef DEBUG
   //dpFile=fopen("zorro.log","wb+");
 #endif

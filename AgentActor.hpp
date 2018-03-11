@@ -19,6 +19,7 @@ public:
   {
     return stamina;
   }
+  float getAttackBonus()const;
   float getAttack()const;
   float getDefense()const;
   float getSpeed()const override;
@@ -53,14 +54,27 @@ public:
     hp-=std::max(0.0f, dmg-getDefense());
   }
 
+  void addEquipment(AgentEquipmentPrt eq)
+  {
+    equipment.push_back(eq);
+    baseSpeed-=0.05f;
+  }
+
+  const std::vector<AgentEquipmentPrt>& getEquipment()
+  {
+    return equipment;
+  }
+
 protected:
   float stamina=1.0;
   float baseAttack=0.05f;
   float baseDefense=0.05f;
   float baseSpeed=1.0f;
-  float basePerception=1.0f;
+  float basePerception=0.5f;
   float freeNrgy=5.0f;
   std::array<float, 4> nrgy = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+  std::vector<AgentEquipmentPrt> equipment;
 
   static float nrgyLevelToStaminaSpent(float lvl);
 };

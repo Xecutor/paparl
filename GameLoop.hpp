@@ -15,7 +15,7 @@ struct TileObjects{
   GameActorPtr actor;
   std::list<GameItemPtr> items;
   GameWorldObjectPtr worldObj;
-  const GameTile* tile;
+  const GameTile* tile = nullptr;
 };
 
 using GameMap = GumMap<TileObjects>;
@@ -53,12 +53,20 @@ public:
     return {{mapOffsetX,mapOffsetY}, {con.width()-mapOffsetX, con.height()-mapOffsetY}};
   }
 
+  IPos mapToScreen(IPos p);
+
 protected:
   const int mapOffsetX=40;
   const int mapOffsetY=0;
   TimeLine timeLine;
   GameMap map;
   PlayerPtr player;
+  bool runMode=false;
+  IPos runDir;
+
+  virtual void playerDied()=0;
+  virtual void afterTurn()=0;
+
   bool stopForPlayerTurn = false;
   std::vector<GameActorPtr> actors;
 

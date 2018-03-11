@@ -11,13 +11,15 @@ using namespace glider;
 class ScreensController;
 class Console;
 
-class GameScreen{
+class GameScreen : public std::enable_shared_from_this<GameScreen>{
 public:
   GameScreen(Console& argCon, ScreensController* argScon):con(argCon), scon(argScon){}
+  GameScreen(const GameScreen&)=delete;
   virtual ~GameScreen(){}
   virtual void init(){}
+  virtual void onTopScreen(){}
   virtual void onMouseEvent(const MouseEvent& /*evt*/) {}
-  virtual void onKeyboardEvent(const KeyboardEvent& evt) = 0;
+  virtual void onKeyboardEvent(const KeyboardEvent& /*evt*/) {};
   virtual void draw() = 0;
   virtual bool isFullScreen()const
   {
@@ -54,15 +56,17 @@ protected:
   bool closeRequest = false;
 };
 
+using GameScreenPtr=std::shared_ptr<GameScreen>;
+
 class ScreensController {
 public:
   ScreensController(Console& argCon);
-  void pushScreen(std::shared_ptr<GameScreen> screen);
+  void pushScreen(GameScreenPtr screen);
 
   template <class GS, class... Args>
-  GS& pushScreen(Args... args)
+  GS& pushScreen(Args&&... args)
   {
-    auto ptr = std::make_shared<GS>(con, this, std::forward<Args...>(args)...);
+    auto ptr = std::make_shared<GS>(con, this, std::forward<Args>(args)...);
     pushScreen(ptr);
     return *ptr;
   }
@@ -72,6 +76,6 @@ public:
   void draw();
 protected:
   Console& con;
-  using ScreensVector = std::vector<std::shared_ptr<GameScreen>>;
+  using ScreensVector = std::vector<GameScreenPtr>;
   ScreensVector screens;
 };

@@ -35,6 +35,12 @@ const GameTile& getTile(GameTileType tile)
     DECLTILE(carX,              "+",       {},       {}, false,    0,       {},    0,  true, "car");
     DECLTILE(carSP,             " ",       {},       {}, false,    0,       {},    0,  true, "car");
     DECLTILE(carB,              "_",       {},       {}, false,    0,       {},    0,  true, "car");
+    DECLTILE(grass,            "\"", 0x602719, 0x0d703b, false,    0,       {},  130, false, "grass");
+    DECLTILE(woodenWall,        " ", 0x7c431f,       {}, false,    0,       {},    0,  true, "wooden wall");
+    DECLTILE(fence,             "#", 0x602719, 0xc1b8b2, false,    0,       {},    0, false, "wooden fence");
+    DECLTILE(dirtRoad,          ":", 0x602719, 0xa0513e, false,    0,       {},  110, false, "dirt road");
+    DECLTILE(crate,             "▤", 0x4e4f51, 0x602517, false,    0,       {},    0,  true, "crate");
+    DECLTILE(shelf,             "=", 0x4e4f51, 0xbab8b8, false,    0,       {},    0,  true, "shelf");
   }
   static const GameTile dummy{GameTileType::barrier, " ", {}, {}, false, 0, {}, 0, false, ""};
   return dummy;

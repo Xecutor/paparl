@@ -5,11 +5,38 @@
 
 class Menu : public GameScreen {
 public:
-  Menu(Console& argCon, ScreensController* argScon, IPos argOrgPos):GameScreen(argCon, argScon), orgPos(argOrgPos){}
-  Menu& add(const std::string& item, std::function<void()> action)
+  Menu(Console& argCon, ScreensController* argScon, IPos argOrgPos={}):GameScreen(argCon, argScon), orgPos(argOrgPos){}
+  void clear()
+  {
+    items.clear();
+    modified=true;
+  }
+  Menu& add(const std::string& item, std::function<void()> action, std::function<void()> onSelected={})
   {
     modified = true;
-    items.emplace_back(item, action);
+    items.emplace_back(item, action, onSelected);
+    return *this;
+  }
+
+  Menu& setSelectedIndex(int argSelectedIndex)
+  {
+    selectedIndex=argSelectedIndex;
+    return *this;
+  }
+
+  bool isFullScreen()const override
+  {
+    return false;
+  }
+
+  bool dimBackground()const override
+  {
+    return doDimBackground;
+  }
+
+  Menu& setDimBackground(bool value)
+  {
+    doDimBackground=value;
     return *this;
   }
 
@@ -71,82 +98,9 @@ public:
     return *this;
   }
 
-  void onKeyboardEvent(const KeyboardEvent& evt)override
-  {
-    if(evt.eventType!=ketPress)
-    {
-      return;
-    }
-    using namespace glider::keyboard;
-    switch(evt.keySym)
-    {
-      case GK_UP:--selectedIndex;break;
-      case GK_DOWN:++selectedIndex;break;
-      case GK_HOME:selectedIndex=0;break;
-      case GK_END:selectedIndex=items.size()-1;break;
-      case GK_RETURN:
-      case GK_RETURN2:
-      case GK_SPACE:
-      case GK_KP_ENTER:
-      {
-        if(selectedIndex<(int)items.size())
-        {
-          items[selectedIndex].action();
-          if(autoClose)
-          {
-            close();
-          }
-        }
-        return;
-      }
-    }
-    selectedIndex=(selectedIndex+items.size()) % items.size();
-  }
+  void onKeyboardEvent(const KeyboardEvent& evt)override;
 
-  void draw()override
-  {
-    if(modified)
-    {
-      updatePosWidth();
-    }
-    IPos p = rect.pos;
-    con.fillRect(rect, bgColor);
-    if(!title.empty())
-    {
-      con.printAlignedAt(p, rect.size.x, fgColor, {}, con.pfKeepBackground|con.pfAlignCenter, title.c_str());
-      ++p.y;
-    }
-    con.fillRect({rect.pos+IPos{0, selectedIndex+(title.empty()?0:1)}, {rect.size.x,1}}, selBgColor);
-    if(menuTextAlignment == MenuTextAlignment::left)
-    {
-      ++p.x;
-    }
-    int idx = 0;
-    for(auto& item:items)
-    {
-      if(menuTextAlignment == MenuTextAlignment::right)
-      {
-        p.x = rect.pos.x - 1 - item.text.length();
-      }
-      else if(menuTextAlignment == MenuTextAlignment::center)
-      {
-        p.x = rect.pos.x + (rect.size.x-item.text.length())/2;
-      }
-      if(idx++==selectedIndex)
-      {
-        con.printAt({rect.pos.x, p.y}, fgColor, {}, Console::pfKeepBackground, ">");
-        con.printAt({rect.pos.x+rect.size.x-1, p.y}, fgColor, {}, Console::pfKeepBackground, "<");
-        con.printAt(p, fgColor, {}, Console::pfKeepBackground, item.text.c_str());
-      }
-      else
-      {
-        con.printAt({rect.pos.x, p.y}, fgColor, {}, Console::pfKeepBackground, " ");
-        con.printAt({rect.pos.x+rect.size.x-1, p.y}, fgColor, {}, Console::pfKeepBackground, " ");
-        con.printAt(p, fgColor, {}, Console::pfKeepBackground, item.text.c_str());
-      }
-      ++p.y;
-    }
-  }
+  void draw()override;
 protected:
   IPos orgPos;
   IRect rect;
@@ -158,6 +112,7 @@ protected:
   int selectedIndex = 0;
 
   bool autoClose = true;
+  bool doDimBackground = false;
 
   std::string title;
 
@@ -180,10 +135,12 @@ protected:
   struct MenuItem{
     std::string text;
     std::function<void()> action;
+    std::function<void()> onSelected;
     MenuItem()=default;
     MenuItem(const MenuItem&)=default;
     MenuItem(MenuItem&&)=default;
-    MenuItem(const std::string& argText, std::function<void()> argAction):text(argText), action(argAction){}
+    MenuItem(const std::string& argText, std::function<void()> argAction, std::function<void()> argOnSelected):
+      text(argText), action(argAction),onSelected(argOnSelected){}
   };
   std::vector<MenuItem> items;
 };

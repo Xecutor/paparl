@@ -212,7 +212,7 @@ public:
   {
     return entrance;
   }
-  void genEnemies(const std::vector<IRect>& placement)
+  void genEnemies(GameMap& map, const std::vector<IRect>& placement)
   {
     std::set<IPos> used;
     for(auto& e:md.enemies)
@@ -223,7 +223,8 @@ public:
         IPos rp;
         do{
           rp=rectRand(rnd, br);
-        }while(used.find(rp)!=used.end());
+        }while(used.find(rp)!=used.end() || !map.getUserInfo(rp.x, rp.y).tile || map.getUserInfo(rp.x, rp.y).tile->walkCost==0);
+        used.insert(rp);
         enemies.push_back({e.et, rp});
         if(e.scattered)
         {
@@ -589,16 +590,102 @@ public:
     {
       enemiesPlacement.push_back(b->border);
     }
-    genEnemies(enemiesPlacement);
+    genEnemies(map, enemiesPlacement);
   }
 protected:
 };
 
 class SuburbsGenerator : public Generator{
 public:
+  IRect makeHouse(GameMap& map, IPos entrance, Dir dir)
+  {
+    IRect areaRect;
+    if(dir==Dir::right)
+    {
+      areaRect.pos=entrance-IPos(19,10);
+    }
+    else
+    {
+      areaRect.pos=entrance-IPos(1,10);
+    }
+    areaRect.size={20,20};
+    auto& fence=getTile(GameTileType::fence);
+    auto& woodenWall=getTile(GameTileType::woodenWall);
+    IRect houseRect=areaRect;
+    houseRect.pos+=IPos(5,5);
+    houseRect.size-=IPos(10,10);
+    for(auto p:areaRect)
+    {
+      if(areaRect.onBorder(p))
+      {
+        fillTileInfo(map, p, fence);
+      }
+      if(houseRect.isInside(p))
+      {
+        fillTileInfo(map, p, woodenWall);
+      }
+    }
+    return areaRect;
+  }
+
   void generate(GameMap& map)override
   {
+    int housesCount=20;
 
+    IRect area(0,0,200,200);
+    {
+      auto& grassTile=getTile(GameTileType::grass);
+      for(auto p:area)
+      {
+        fillTileInfo(map, p, grassTile);
+      }
+    }
+
+    IPos mainRoadStart=(area.tl()+area.tr())/2;
+    IRect mainRoadRect={mainRoadStart-IPos{3,0}, IPos{6,area.size.y}};
+
+    std::vector<IRect> spawnPoints;
+    spawnPoints.push_back(mainRoadRect);
+
+    {
+      auto& asphalt=getTile(GameTileType::aslphalt);
+      for(auto p:mainRoadRect)
+      {
+        fillTileInfo(map, p, asphalt);
+      }
+    }
+
+    int offset=intRand(rnd, 10,20);
+    for(int i=0;i<housesCount;++i)
+    {
+      Dir hdir;
+      if(i%2)
+      {
+        hdir=Dir::right;
+      }
+      else
+      {
+        hdir=Dir::left;
+      }
+      int rlen=intRand(rnd, 30, 45);
+      IRect sideRoad{{(hdir==Dir::right?mainRoadRect.pos.x-rlen:mainRoadRect.tr().x),offset},{rlen,3}};
+      spawnPoints.push_back(sideRoad);
+      IPos houseEnt=hdir==Dir::right?(sideRoad.tl()+sideRoad.bl())/2:(sideRoad.tr()+sideRoad.br())/2;
+      spawnPoints.push_back(makeHouse(map, houseEnt, hdir));
+      auto& dirtroad=getTile(GameTileType::dirtRoad);
+      for(auto p:sideRoad)
+      {
+        fillTileInfo(map, p, dirtroad);
+      }
+      offset+=intRand(rnd, 10, 15);
+      if(offset+15>area.size.y)
+      {
+        break;
+      }
+    }
+    entrance=mainRoadRect.pos+mainRoadRect.size/2;
+    makeBarrier(map, area);
+    genEnemies(map, spawnPoints);
   }
 protected:
 };
@@ -607,7 +694,66 @@ class WarehousGenerator : public Generator{
 public:
   void generate(GameMap& map)
   {
+    int yn=intRand(rnd, 4,7);
+    int xn=intRand(rnd, 4,7);
+    Grid g({200.0f-6*xn,200.0f-6*xn}, xn, yn);
+    g.setSpacing(6,6);
+    IRect area(0,0,200,200);
 
+    std::vector<IRect> spawnPoints;
+
+    {
+      auto& concrete=getTile(GameTileType::concrete);
+      for(auto p:area)
+      {
+        fillTileInfo(map, p, concrete);
+      }
+    }
+    auto& concreteWall=getTile(GameTileType::concreteWall);
+    for(int y=0;y<yn;++y)
+    {
+      for(int x=0;x<xn;++x)
+      {
+        auto fr=g.getCell(x,y);
+        IRect r((int)fr.pos.x,(int)fr.pos.y,(int)fr.size.x, (int)fr.size.y);
+        spawnPoints.push_back(r);
+        for(auto p:r)
+        {
+          if(r.onBorder(p))
+          {
+            if(p.y==r.pos.y+r.size.y-1 && abs(r.pos.x+r.size.x/2-p.x)<3)
+            {
+              continue;
+            }
+            fillTileInfo(map, p, concreteWall);
+          }
+        }
+        Grid fill(r.size, 4, 4);
+        for(int yy=0;yy<4;++yy)
+        {
+          for(int xx=0;xx<4;++xx)
+          {
+            Pos fp=fill.getCell(xx,yy).pos;
+            IPos p=r.pos+IPos(1+(int)fp.x,1+(int)fp.y);
+            auto& shelf=getTile(GameTileType::shelf);
+            for(int i=0;i<3;++i)
+            {
+              fillTileInfo(map, p+IPos(i,0), shelf);
+            }
+            int n=intRand(rnd,0, 3);
+            auto& crate=getTile(GameTileType::crate);
+            for(int i=0;i<n;++i)
+            {
+              IPos cp=p+IPos(intRand(rnd, 0,3), 1+intRand(rnd,0,5));
+              fillTileInfo(map, cp, crate);
+            }
+          }
+        }
+      }
+    }
+    entrance=area.pos+area.size/2;
+    makeBarrier(map, area);
+    genEnemies(map, spawnPoints);
   }
 protected:
 };
@@ -634,6 +780,7 @@ IPos generateLevel(GeneratorType gt, uint32_t seed, const MissionDetails& md, st
       break;
     case GeneratorType::warehouse:
       gen=std::make_unique<WarehousGenerator>();
+      break;
     case GeneratorType::seaport:
       gen=std::make_unique<SeaportGenerator>();
       break;

@@ -27,7 +27,15 @@ add_executable(paparl
     Player.cpp
     CombatScreen.cpp
     Enemy.cpp
-    AgentActor.cpp)
+    AgentActor.cpp
+    MissionControl.cpp
+    MissionSelector.cpp
+    GeneratorType.cpp
+    TextPanel.cpp
+    TextMessage.cpp
+    EquipmentSelector.cpp
+    Menu.cpp
+    AgentEquipment.cpp)
 
 target_compile_features(paparl PRIVATE cxx_std_14)
 

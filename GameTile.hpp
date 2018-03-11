@@ -22,7 +22,13 @@ enum class GameTileType{
   ceilingLight,
   interiorFloor1,
   interiorFloor2,
-  carTL, carH, carTR,carV,carX, carSP, carB
+  carTL, carH, carTR,carV,carX, carSP, carB,
+  grass,
+  woodenWall,
+  fence,
+  dirtRoad,
+  crate,
+  shelf,
 };
 
 struct GameTile{

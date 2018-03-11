@@ -16,13 +16,27 @@ void GameLoop::addActor(IPos pos, float actDelay, GameActorPtr actor)
   addActorToMap(actor);
 }
 
+IPos GameLoop::mapToScreen(IPos p)
+{
+  int dx = (con.width()-mapOffsetX)/2;
+  int dy = (con.height()-mapOffsetY)/2;
+  int mx = player->getPos().x - dx;
+  int my = player->getPos().y - dy;
+  p-=IPos(mx,my);
+  p+=IPos(mapOffsetX, mapOffsetY);
+  return p;
+}
+
 void GameLoop::addActorToMap(GameActorPtr actor)
 {
   map.getUserInfo(actor->getPos()).actor=actor;
-  map.setInfo(actor->getPos(), actor->getFg(), map.getBg(actor->getPos()), actor->getSym());
-  if(actor->getLightSource())
+  if(!actor->isHidden(player->getPerception()))
   {
-    map.setLightSource(actor->getPos(), actor->getLightStrength(), actor->getLightTint());
+    map.setInfo(actor->getPos(), actor->getFg(), map.getBg(actor->getPos()), actor->getSym());
+    if(actor->getLightSource())
+    {
+      map.setLightSource(actor->getPos(), actor->getLightStrength(), actor->getLightTint());
+    }
   }
 }
 
@@ -42,6 +56,11 @@ void GameLoop::turn()
     {
       removeActorFromMap(actor);
       LOGINFO("gameloop", "actor %{} died at %{}", actor->getName(), actor->getPos());
+      if(actor==player)
+      {
+        playerTurn();
+        playerDied();
+      }
       continue;
     }
     LOGDEBUG("gameloop", "%{} making turn at %{}", actor->getName(), (int)(100.0*timeLine.getCurrentTime()));
@@ -52,6 +71,7 @@ void GameLoop::turn()
       timeLine.add(actCost, actor);
     }
   }
+  afterTurn();
   stopForPlayerTurn = false;
 }
 
@@ -79,11 +99,11 @@ float GameLoop::moveActorBy(GameActorPtr ptr, IPos d)
 
 void GameLoop::playerTurn()
 {
+  stopForPlayerTurn = true;
   if(player->getLightSource())
   {
     map.setLightSource(player->getPos(), player->getLightStrength(), player->getLightTint());
   }
-  stopForPlayerTurn = true;
   map.clearVisibility();
   auto pp = player->getPos();
   map.calcFov(pp.x, pp.y, 20);
@@ -102,4 +122,12 @@ void GameLoop::draw()
   map.draw(&con, mx, my, mapOffsetX, mapOffsetY, mw, mh);
   //con.printAt({mapOffsetX+dx,mapOffsetY+dy}, Color::white, {}, Console::pfKeepBackground, "@");
   drawPanel();
+  if(runMode)
+  {
+    if(canActorMoveTo(*player, runDir))
+    {
+      timeLine.add(moveActorBy(player, runDir), player);
+      turn();
+    }
+  }
 }
