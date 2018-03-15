@@ -107,7 +107,7 @@ double EnemyBase::makeTurn(GameLoop* game)
           GameActorPtr actor = game->getMap().getUserInfo(pos+d).actor;
           if(actor && !actor->isEnemy())
           {
-            actor->takeDamage(game, this, 0.1f);
+            actor->takeDamage(game, this, damage);
           }
         }
       }

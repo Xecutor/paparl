@@ -15,7 +15,7 @@ void customformat(kst::FormatBuffer& buf,double v,int w,int p)
 void customformat(kst::FormatBuffer& buf,float v,int w,int p)
 {
   char buf2[64];
-  size_t len=sprintf(buf2,"%*.*lf",w,p,v);
+  size_t len=sprintf(buf2,"%*.*f",w,p,v);
   buf.Append(buf2,len);
 }
 
@@ -441,7 +441,7 @@ void CombatScreen::onKeyboardEvent(const KeyboardEvent &evt)
             add("Request URGENT evacuation",[this](){
               abortMission(true);
             });
-
+        break;
       }
       case GK_CLEAR: //??? sdl?
       case GK_KP_5:
@@ -485,7 +485,7 @@ s - use scanner
           if(e->canBeFired)
           {
             haveGun=true;
-            haveAmmo=e->count;
+            haveAmmo=e->count>0;
             break;
           }
         }

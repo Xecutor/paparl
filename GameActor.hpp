@@ -6,6 +6,7 @@ class GameLoop;
 
 class GameActor : public GameObject, public std::enable_shared_from_this<GameActor>{
 public:
+  virtual ~GameActor(){}
   virtual void beforeTurn(){};
   virtual double makeTurn(GameLoop* game) = 0;
   virtual float getSpeed()const =0;
