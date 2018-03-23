@@ -15,6 +15,7 @@ public:
   void drawPanel()override;
   void onKeyboardEvent(const KeyboardEvent &evt)override;
   void onMouseEvent(const MouseEvent& evt)override;
+  void onTopScreen()override;
 
   struct Animation{
     virtual ~Animation(){}
@@ -47,16 +48,24 @@ protected:
   IPos lookPos;
 
   enum TargetFor{
+    tfNone,
     tfFire,
     tfThrow,
   };
 
   bool targetMode=false;
-  TargetFor targetFor;
+  TargetFor targetFor = tfNone;
   IPos targetPos;
 
-  bool escapeMode=false;
+  enum class EscapeMode
+  {
+    none,
+    escape,
+    evac
+  };
+  EscapeMode escapeMode=EscapeMode::none;
 
+  int delayedClose = -1;
 
   std::function<void(MissionResultInfo)> onMissionEnd;
 
@@ -80,7 +89,7 @@ protected:
     AngleRange r;
   };
   bool scanAnimation=false;
-  size_t scanCreateIndex;
+  size_t scanCreateIndex = 0;
   std::vector<IPos> scanTargets;
   std::vector<ScanItem> scanItems;
   std::vector<RingItem> scanRing;

@@ -94,7 +94,10 @@ void MissionControl::refreshMissions()
       case 3:md.gt=GeneratorType::suburbs;break;
       case 4:md.gt=GeneratorType::warehouse;break;
     }
-    md.enemies.push_back({getRandomEnemyForDifficulty(rnd, md.dl), boolRand(rnd), ((int)md.dl)+intRand(rnd,1,3)});
+    for ( int i = 0; i < 1 + (int)md.dl / 2; ++i ) {
+        md.enemies.push_back(
+                { getRandomEnemyForDifficulty(rnd, md.dl), boolRand(rnd), ((int)md.dl) + intRand(rnd, 1, 3) });
+    }
     switch(intRand(rnd,0, 6))
     {
       case 0:

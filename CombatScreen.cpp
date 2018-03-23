@@ -222,6 +222,13 @@ struct CombatScreen::ScanAnimation:CombatScreen::Animation{
 
 };
 
+void CombatScreen::onTopScreen()
+{
+    if(delayedClose==0) {
+        close();
+    }
+}
+
 void CombatScreen::init()
 {
   if(md.mt==MissionTime::day)
@@ -267,6 +274,9 @@ void CombatScreen::printBar(Color clr1, Color clr2, float val)
 
 void CombatScreen::drawPanel()
 {
+  if ( delayedClose > 0 ) {
+    --delayedClose;
+  }
   for(auto& a:animations)
   {
     a->step();
@@ -594,7 +604,7 @@ void CombatScreen::playerDied()
   MissionResultInfo mri;
   mri.result=MissionResultInfo::kia;
   onMissionEnd(mri);
-  close();
+  delayedClose = 20;
 }
 
 void CombatScreen::abortMission(bool evac)
@@ -602,7 +612,7 @@ void CombatScreen::abortMission(bool evac)
   MissionResultInfo mri;
   mri.result=evac?MissionResultInfo::evacuated:MissionResultInfo::escaped;
   onMissionEnd(mri);
-  close();
+  delayedClose = 20;
 }
 
 void CombatScreen::afterTurn()
@@ -626,7 +636,7 @@ void CombatScreen::afterTurn()
   MissionResultInfo mri;
   mri.result=MissionResultInfo::success;
   onMissionEnd(mri);
-  close();
+  delayedClose = 20;
 }
 
 void CombatScreen::startScan()

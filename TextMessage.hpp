@@ -10,6 +10,10 @@ public:
   {
     TextPanel::splitTextToLines(argText, [this](std::string line){lines.push_back(std::move(line));});
   }
+  bool isFullScreen()const override
+  {
+    return false;
+  }
   void init()override;
   void draw()override;
   void onKeyboardEvent(const KeyboardEvent& evt)override;
