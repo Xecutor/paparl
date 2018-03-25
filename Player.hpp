@@ -17,6 +17,10 @@ public:
       lightStrength=300;
     }
   }
+  void useStimPack()
+  {
+    stamina=1.0f;
+  }
 protected:
 };
 

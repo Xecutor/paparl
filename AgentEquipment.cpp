@@ -9,6 +9,7 @@ std::string getEquipmentNameByType(AgentEquipmentType aet)
     case AET::ectoplasmicGun:return "Ectoplasmic gun";
     case AET::silverSword:return "Silver sword";
     case AET::stunGrenade:return "Stun grenade";
+    case AET::stimPack:return "Stimpack";
   }
   return {};
 }
@@ -59,10 +60,13 @@ public:
     auto& map=game->getMap();
     for(auto p:ILine(src,dst))
     {
+      if(p==src || p==dst) {
+        continue;
+      }
       auto& to=map.getUserInfo(p);
       if(to.actor && to.actor->isEnemy())
       {
-        float dmg=0.2f*game->getPlayer()->getAttackBonus();
+        float dmg=0.1f*game->getPlayer()->getAttackBonus();
         EnemyBase* enemy=dynamic_cast<EnemyBase*>(to.actor.get());
         if(enemy->getEnemyClass()==EnemyClass::ghost)
         {
@@ -208,6 +212,24 @@ public:
   }
 };
 
+class StimPack:public AgentEquipment{
+public:
+  StimPack()
+  {
+    canBeUsed=true;
+    count=4;
+  }
+  void useThis(CombatScreen* game)override
+  {
+    if(count==0)
+    {
+      return;
+    }
+    --count;
+    game->getPlayer()->useStimPack();
+  }
+};
+
 AgentEquipmentPrt createAgentEquipment(AgentEquipmentType aet)
 {
   using AET=AgentEquipmentType;
@@ -217,6 +239,7 @@ AgentEquipmentPrt createAgentEquipment(AgentEquipmentType aet)
     case AET::ectoplasmicGun:rv=std::make_shared<EctoplasmicGun>();break;
     case AET::silverSword:rv=std::make_shared<SilverSword>();break;
     case AET::stunGrenade:rv=std::make_shared<StunGrenade>();break;
+    case AET::stimPack:rv=std::make_shared<StimPack>();break;
   }
   rv->aet=aet;
   return rv;

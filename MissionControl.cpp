@@ -234,11 +234,6 @@ void MissionControl::load()
     seed=f.ReadNetInt32();
     selectedMission=f.ReadNetInt32();
     bool missionStart=f.ReadByte()!=0;
-    if(missionStart)
-    {
-      refreshMissions();
-      startMission();
-    }
     uint16_t eqCnt=f.ReadNetInt16();
     auto allEq=getAllEquipmentTypes();
     for(uint16_t i=0;i<eqCnt;++i)
@@ -248,6 +243,11 @@ void MissionControl::load()
       {
         equipped.insert(eq);
       }
+    }
+    if(missionStart)
+    {
+      refreshMissions();
+      startMission();
     }
   } catch (std::exception& e) {
     LOGERROR("load","Exception:%{}", e.what());

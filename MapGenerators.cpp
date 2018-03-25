@@ -727,6 +727,7 @@ public:
             }
             fillTileInfo(map, p, concreteWall);
           }
+          map.setOutdoors(p.x, p.y, false);
         }
         Grid fill(r.size, 4, 4);
         for(int yy=0;yy<4;++yy)

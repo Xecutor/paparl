@@ -9,3 +9,10 @@ After you accumulate 1000 reputation points, you can
 apply for a promotion to a P.A.P.A. headquarters.
 
 Don't forget to press 'h' in the mission to lear the keys!
+
+Repository of the project: https://github.com/Xecutor/paparl
+
+Update 1:
+  - Several minor fixes, more enemies on later levels.
+  - Nerfed ectoplasmic gun.
+  - Added 10 turns delay for an urgent evacuation.

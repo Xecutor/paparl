@@ -8,6 +8,7 @@ enum class AgentEquipmentType{
   ectoplasmicGun,
   silverSword,
   stunGrenade,
+  stimPack,
 };
 
 std::string getEquipmentNameByType(AgentEquipmentType aet);
@@ -19,6 +20,7 @@ inline std::vector<AgentEquipmentType> getAllEquipmentTypes()
     AET::ectoplasmicGun,
     AET::silverSword,
     AET::stunGrenade,
+    AET::stimPack
   };
 }
 

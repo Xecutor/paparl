@@ -60,10 +60,11 @@ protected:
   enum class EscapeMode
   {
     none,
-    escape,
-    evac
+    evac,
+    urgent
   };
   EscapeMode escapeMode=EscapeMode::none;
+  int urgentEvacCount = 10;
 
   int delayedClose = -1;
 
@@ -72,7 +73,7 @@ protected:
   struct ScanAnimation;
 
   void playerDied()override;
-  void abortMission(bool evac);
+  void abortMission();
 
   void afterTurn()override;
 

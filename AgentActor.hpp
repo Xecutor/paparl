@@ -66,7 +66,7 @@ public:
   }
 
 protected:
-  float stamina=1.0;
+  float stamina=1.0f;
   float baseAttack=0.05f;
   float baseDefense=0.05f;
   float baseSpeed=1.0f;

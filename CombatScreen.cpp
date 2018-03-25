@@ -308,7 +308,7 @@ void CombatScreen::drawPanel()
   printPanelText(Color::black,"");
   for(auto& e:player->getEquipment())
   {
-    if(e->canBeFired || e->canBeThrown)
+    if(e->canBeFired || e->canBeThrown || e->canBeUsed)
     {
       if(e->count)
       {
@@ -445,11 +445,12 @@ void CombatScreen::onKeyboardEvent(const KeyboardEvent &evt)
             setDimBackground(true).
             add("Continue", [](){}).
             add("Request evacuation", [this](){
-              escapeMode=true;
+              escapeMode=EscapeMode::evac;
               scon->pushScreen<TextMessage>("You must reach the barrier for the evacuation.");
             }).
             add("Request URGENT evacuation",[this](){
-              abortMission(true);
+              scon->pushScreen<TextMessage>(FORMAT("You will be evacuated in %{} turns.", urgentEvacCount));
+              escapeMode=EscapeMode::urgent;
             });
         break;
       }
@@ -482,6 +483,7 @@ n - show Nrgy distribution screen
 l - toggle flashlight
 f - fire the gun
 t - throw a grenade
+u - use usable equipment
 s - use scanner
 )");
         break;
@@ -531,6 +533,18 @@ s - use scanner
         }
         targetFor=TargetFor::tfThrow;
         enterTargetMode();
+        break;
+      }
+      case GK_U:
+      {
+        for(auto& e:player->getEquipment())
+        {
+          if(e->canBeUsed && e->count>0)
+          {
+            e->useThis(this);
+            break;
+          }
+        }
         break;
       }
       case GK_S:
@@ -607,27 +621,32 @@ void CombatScreen::playerDied()
   delayedClose = 20;
 }
 
-void CombatScreen::abortMission(bool evac)
+void CombatScreen::abortMission()
 {
   MissionResultInfo mri;
-  mri.result=evac?MissionResultInfo::evacuated:MissionResultInfo::escaped;
+  mri.result=escapeMode==EscapeMode::urgent?MissionResultInfo::evacuated:MissionResultInfo::escaped;
   onMissionEnd(mri);
   delayedClose = 20;
 }
 
 void CombatScreen::afterTurn()
 {
-  if(escapeMode)
+  if(escapeMode==EscapeMode::evac)
   {
     for(auto p:IRect(-1,-1,3,3))
     {
       auto tile=map.getUserInfo(player->getPos()+p).tile;
       if(tile && tile->gtt==GameTileType::barrier)
       {
-        abortMission(false);
+        abortMission();
         return;
       }
     }
+  }
+  if(escapeMode==EscapeMode::urgent && --urgentEvacCount==0)
+  {
+    abortMission();
+    return;
   }
   if(!timeLine.getEnemies().empty())
   {
